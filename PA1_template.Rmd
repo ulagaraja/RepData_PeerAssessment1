@@ -4,7 +4,10 @@ output: html_document
 COURSERA-REPORODUCIBLE RESEARCH PA-1
 ====================================
 
-**Loading and preprocessing the data**
+
+
+
+##Loading and preprocessing the data
 
 **1.Loading the data**
 
@@ -26,11 +29,12 @@ activity_data$date<-as.Date(activity_data$date)
 ```
 
 
-**What is mean total number of steps taken per day?**
+##What is mean total number of steps taken per day?
 
 **1.Total number of steps taken per day**
 
 Total number of steps taken per day is calculated as
+
 ```{r,echo=TRUE}
 library(dplyr,warn.conflicts = FALSE)
 steps_by_day<-activity_data %>% group_by(date) %>% summarise(Total_steps=sum(steps,na.rm = TRUE))
@@ -49,22 +53,32 @@ plot(activity_data$date,activity_data$steps,xlab="Date",ylab="No. of Steps per d
 **3.Mean and Median of the total number of steps taken per day**
 
 Mean and Median of number of steps taken per day is found using *mean* and *median* function.
+
 ```{r,echo=TRUE}
-mean_steps<-activity_data %>% group_by(date) %>% summarise(mean_no_steps=mean(steps,na.rm = TRUE))
-head(mean_steps)
-median_steps<-activity_data %>% group_by(date) %>% summarise(median_no_steps=median(steps))                                                        
-head(median_steps)
+mean_step<-mean(activity_data$steps,na.rm = TRUE)
+median_step<-median(activity_data$steps,na.rm = TRUE)
 ```
 
-**Average daily activity pattern**
+Mean of total number of steps = `r mean_step`
+Median of total number of steps = `r median_step`
+
+
+
+
+
+
+
+##Average daily activity pattern
 
 **1.Time-seies plot **
 
 Average number of steps taken per 5-minute interval can be found using dplyr and stoerd in *interval_avg* dataframe.
+
 ```{r,echo=TRUE}
 
 interval_avg<-activity_data %>% group_by(interval) %>% summarise(mean_steps=mean(steps,na.rm=TRUE))
 ```
+
 The time-series plot of average number of steps taken per 5-minute interval is shown below
 ```{r,echo=TRUE}
 plot(interval_avg$interval,interval_avg$mean_steps,type="l",xlab="5-min interval",ylab="avg no. of steps",main="Avg no. of steps for every 5-min interval")
@@ -72,14 +86,93 @@ plot(interval_avg$interval,interval_avg$mean_steps,type="l",xlab="5-min interval
 
 **2.calculating 5-minute interval with maximum number of steps**
 
-Data Frame *interval_avg* contains the average number of steps taken for every 5-minute period.From that it can be found that time period containing the maximum value for average number of steps.
+Data Frame *interval_avg* contains the average number of steps taken for every 5-minute period.From that time period containing the maximum value for average number of steps can be found as
+
 ```{r,echo=TRUE}
 max_steps_time_period<-interval_avg[which.max(interval_avg$mean_steps),1]
 ```
 
-It can be found that time period `r max_steps_time_period` contains the maximum value for average number of steps.
+It can be found that **time period `r max_steps_time_period` ** contains the maximum value for average number of steps.
 
-**Differences in activity patterns between weekdays and weekend **
+
+
+
+
+
+
+##Dealing with missing values
+
+**1.calculating the total number of missing values **
+
+Total number of missing values in the given data is calculated as below.
+
+```{r,echo=TRUE}
+NA_count<-length(activity_data[is.na(activity_data$steps),1])
+```
+It is found that `r NA_count` rows are having NA in steps column.
+
+**2.Devising a strategy and creating new Dataset **
+
+It has been found that data is missing for all the 5-minute intervals in some of the days(example:2012-10-01).
+
+```{r,echo=TRUE}
+activity_data[activity_data$date=="2012-10-01",1]
+```
+
+Hence mean value of one day cannot be used to replace tha NA values.
+
+Hence it is proposed to use mean of all 5-minute interval to replace the NA values.Here dataframe *interval_avg* already created can be used.It contains the mean of steps taken for all the 5-minute interval perids.
+
+```{r,echo=TRUE}
+head(interval_avg)
+```
+
+Since *mean_steps* column is in dotted decimal notation,it is rounded off to nearest integer.
+```{r,echo=TRUE}
+interval_avg$mean_steps<-round(interval_avg$mean_steps)
+head(interval_avg)
+```
+
+New dataset is created by replacing all NA values in *activity_data* with mean steps values in *interval_avg*
+
+```{r,echo=TRUE}
+NA_interval<-activity_data[is.na(activity_data$steps),3]
+index<-match(NA_interval,interval_avg$interval)
+replacing_values<-interval_avg[index,2]
+new_activity_data<-activity_data
+new_activity_data[is.na(new_activity_data$steps),1]<-replacing_values
+head(new_activity_data,10)
+```
+
+Histogram of total number of steps taken with NA values replaced is given as
+
+```{r,echo=TRUE}
+plot(new_activity_data$date,new_activity_data$steps,xlab="Date",ylab="No. of Steps per day",main="Histogram of no. of steps taken per day",type="h")
+```
+
+Mean and Median of steps are calculated from the new data set.
+
+```{r,echo=TRUE}
+new_mean<-mean(new_activity_data$steps)
+new_median<-median(new_activity_data$steps)
+```
+
+Mean of total number of steps with NA = `r mean_step`
+
+Mean of total number of steps with NA's replaced = `r new_mean`
+
+Median of total number of steps with NA = `r median_step`
+
+Median of total number of steps with NA's replaced = `r new_median`
+
+**It is seen that there is no significant change in the mean and median of total number of steps taken after replacing the NA values.**
+
+
+
+
+
+
+##Differences in activity patterns between weekdays and weekend 
 
 **1.creating new factor variable to differntiate weekday and weekend **
 
@@ -98,17 +191,7 @@ weekdays_avg<-filter(activity_data,!grepl('Saturday|Sunday',weekday)) %>% group_
 Plots for average number of steps taken for each 5-min interval is made seperately for weekdays and weekend days.
 ```{r,echo=TRUE}
 par(mfrow=c(2,1))
-plot(weekdays_avg$interval,weekdays_avg$mean_steps,type="l",xlab="5-min interval",ylab="avg no.of steps",sub="weekdays plot")
+plot(weekdays_avg$interval,weekdays_avg$mean_steps,type="l",xlab="5-min interval",ylab="avg no.of steps",sub="weekdays plot",main="Average number of steps taken for 5-min interval")
 plot(weekend_avg$interval,weekend_avg$mean_steps,type="l",xlab="5-min interval",ylab="avg no. of steps",sub="weekend plot")
 ```
 
-**Dealing with missing values**
-
-**1.calculating the total number of missing values **
-
-Total number of missing values in the given data is calculated as below.
-
-```{r,echo=TRUE}
-NA_count<-length(activity_data[is.na(activity_data$steps),1])
-```
-It is found that `r NA_count` rows are having NA in steps column.
